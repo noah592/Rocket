@@ -95,7 +95,9 @@ public class Input implements KeyListener, MouseWheelListener, MouseListener, Mo
   }
 
   // ---------- Mouse drag pan (only meaningful in FreeCam) ----------
-  @Override public void mousePressed(MouseEvent e){ if (SwingUtilities.isLeftMouseButton(e)) lastDrag = e.getPoint(); }
+  @Override public void mousePressed(MouseEvent e){
+    if (SwingUtilities.isLeftMouseButton(e)) lastDrag = e.getPoint();
+  }
   @Override public void mouseReleased(MouseEvent e){ lastDrag = null; }
   @Override public void mouseDragged(MouseEvent e){
     if (lastDrag != null && !s.followRocket && !followingBody) {
@@ -107,12 +109,22 @@ public class Input implements KeyListener, MouseWheelListener, MouseListener, Mo
       v.repaint();
     }
   }
-
-  // ---------- Click-to-follow body (or click empty to follow rocket) ----------
+  // ---------- Click-to-follow body OR click HUD buttons ----------
   @Override public void mouseClicked(MouseEvent e){
     if (!SwingUtilities.isLeftMouseButton(e)) return;
 
     int mx = e.getX(), my = e.getY();
+
+    // 1) HUD time buttons take priority
+    int idx = DrawHud.hitTestTimeButton(mx, my);
+    if (idx >= 0){
+      double val = DrawHud.presetValueAt(idx);
+      s.timeScale = State.clamp(val, Config.TIME_SCALE_MIN, Config.TIME_SCALE_MAX);
+      v.repaint();
+      return;
+    }
+
+    // 2) World picking (bodies / rocket follow)
     int pick = -1; double best = Double.POSITIVE_INFINITY;
 
     for (int i = 0; i < s.bodies.size(); i++) {

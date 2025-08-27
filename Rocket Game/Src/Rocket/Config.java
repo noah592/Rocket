@@ -10,6 +10,10 @@ public class Config {
   public static final double ANG_SPEED_RAD=1.361357; // ~78 deg/s
   public static final double THROTTLE_RATE=0.8;
 
+  // Fuel system
+  /** Fuel capacity expressed as seconds of burn at full throttle (throttle = 1.0). */
+  public static final double FUEL_FULL_BURN_SEC = 1200.0;
+
   // Prediction
   public static final double BASE_PRED_DT=0.5;
   public static final int PRED_POINTS_MAX=2000,PRED_HORIZON_MAX=18000;
@@ -78,12 +82,16 @@ public class Config {
   // Arrow LOD
   public static final double ARROW_MIN_HEIGHT_PX=15.0, ARROW_SIZE_PX=15.0;
 
-  // --- New: HUD buttons + time limits ---
+  // --- HUD buttons + time limits ---
   public static final int HUD_BTN_SIZE=22, HUD_BTN_GAP=8;
-  public static final double TIME_SCALE_MIN=0.25, TIME_SCALE_MAX=500.0;
-  public static final double TIME_SCALE_STEP_DOWN=0.5, TIME_SCALE_STEP_UP=2.0;
+  public static final double TIME_SCALE_MIN=0.25, TIME_SCALE_MAX=5000.0;
 
-  // --- New: label culling & tiny-body rule ---
+  // --- label culling & tiny-body rule ---
   public static final double LABEL_HIDE_BELOW_RPX=10.0;   // don't label if body radius on screen < 10 px
   public static final double TINY_BODY_THRESH_PX=3.5;     // show 2px white dot if below this
+
+  // --- Time-scale presets (for HUD pushbuttons) ---
+  public static final double[] TIME_PRESETS = new double[]{
+    1.0, 5.0, 25.0, 100.0, 500.0, 1000.0, 5000.0
+  };
 }

@@ -1,6 +1,7 @@
 // File: src/rocket/State.java
 package rocket;
 import java.awt.Color; import java.util.*; import static java.lang.Math.*;
+
 public class State {
   public static final class Body {
     public String name; public double cx,cy,radius,mu,terrainAmp,terrainL,atmThick; public Color atmInner,atmOuter;
@@ -9,10 +10,17 @@ public class State {
       name=n; cx=x; cy=y; radius=R; mu=M; terrainAmp=ta; terrainL=Math.max(1.0,tl); atmThick=Math.max(0.0,at); atmInner=ai; atmOuter=ao;}
     public double k1(){ return (2*PI)/terrainL; }
   }
+
   public final List<Body> bodies=new ArrayList<>();
-  // Rocket
-  public double rx=0,ry=0,vx=0,vy=0,ang=0; public boolean leftHeld=false,rightHeld=false,upHeld=false,downHeld=false,paused=false,followRocket=false;
+
+  // Rocket state
+  public double rx=0,ry=0,vx=0,vy=0,ang=0;
+  public boolean leftHeld=false,rightHeld=false,upHeld=false,downHeld=false,paused=false,followRocket=false;
   public double throttle=0.0,timeScale=1.0; public int predHorizonSec=18000;
+
+  // Fuel (seconds of full-throttle burn remaining)
+  public double fuelSec = Config.FUEL_FULL_BURN_SEC;
+
   // Orbits
   public double simTimeSec=0.0;
 
@@ -39,11 +47,14 @@ public class State {
     // Place rocket on Earth's surface directly "above" the center at t=0
     rx=e.cx; ry=e.cy + e.radius;
 
-    // ✔ FIX: Inherit Earth's center velocity only (don't add A*ω again)
+    // Inherit Earth's center velocity only
     vx=e.vcx; vy=e.vcy;
 
     ang=0; throttle=0; timeScale=1; paused=false; followRocket=true;
     predHorizonSec=18000;
+
+    // Refuel to full
+    fuelSec = Config.FUEL_FULL_BURN_SEC;
   }
 
   public void advanceSimTime(double dtReal){ simTimeSec+=dtReal*timeScale; updateOrbits(); }
@@ -70,9 +81,36 @@ public class State {
     }
   }
 
-  public void scaleTime(double mult){ timeScale=clamp(timeScale*mult,0.25,500.0); }
+  // Use Config caps so 1000x/5000x work
+  public void scaleTime(double mult){
+    timeScale = clamp(timeScale*mult, Config.TIME_SCALE_MIN, Config.TIME_SCALE_MAX);
+  }
   public void setThrottle(double t){ throttle=clamp(t,0.0,1.0); }
   public void nudgePredHorizon(int s){ predHorizonSec=(int)clamp(predHorizonSec+s,10.0,(double)Config.PRED_HORIZON_MAX); }
+
+  /**
+   * Consume fuel based on current throttle over a simulation step of dtSim seconds.
+   * Returns the effective throttle that can be applied this tick (≤ requested throttle).
+   * Fuel is measured in "seconds of full-throttle burn" remaining.
+   */
+  public double consumeFuel(double dtSim){
+    double req = throttle;
+    if (req <= 1e-9) return 0.0;
+    if (fuelSec <= 1e-9) return 0.0;
+
+    double need = req * dtSim; // seconds of full-throttle equivalent to consume
+    if (fuelSec >= need){
+      fuelSec -= need;
+      return req;
+    }else{
+      // Not enough to sustain 'req' across the whole dt; scale down this tick
+      double allowed = clamp(fuelSec / Math.max(dtSim,1e-9), 0.0, req);
+      fuelSec = 0.0;
+      return allowed;
+    }
+  }
+
+  public double fuelFrac(){ return clamp(fuelSec / Math.max(1e-9, Config.FUEL_FULL_BURN_SEC), 0.0, 1.0); }
 
   public Body nearestBody(double x,double y){
     Body best=null; double bestD2=Double.POSITIVE_INFINITY;

@@ -46,10 +46,11 @@ public class SimPanel extends JComponent implements ActionListener {
     s.ang += Config.ANG_SPEED_RAD * turn * dtReal;
 
     // Physics step
-    double dt = dtReal * s.timeScale;
+    double dtSim = dtReal * s.timeScale;
+    double effThrottle = s.consumeFuel(dtSim); // consume fuel, get effective throttle
     double nx = Math.sin(s.ang), ny = Math.cos(s.ang);
-    double ax = Config.MAX_THRUST_G * s.throttle * Config.G0 * nx;
-    double ay = Config.MAX_THRUST_G * s.throttle * Config.G0 * ny;
+    double ax = Config.MAX_THRUST_G * effThrottle * Config.G0 * nx;
+    double ay = Config.MAX_THRUST_G * effThrottle * Config.G0 * ny;
 
     for (State.Body b : s.bodies) {
       double dx = s.rx - b.cx, dy = s.ry - b.cy;
@@ -57,8 +58,8 @@ public class SimPanel extends JComponent implements ActionListener {
       if (r > 1) { double invR3 = 1.0 / (r2 * r); ax += -b.mu * dx * invR3; ay += -b.mu * dy * invR3; }
     }
 
-    s.vx += ax * dt; s.vy += ay * dt;
-    s.rx += s.vx * dt; s.ry += s.vy * dt;
+    s.vx += ax * dtSim; s.vy += ay * dtSim;
+    s.rx += s.vx * dtSim; s.ry += s.vy * dtSim;
 
     // Ground collision in ground frame
     State.Body nb = s.nearestBody(s.rx, s.ry);
